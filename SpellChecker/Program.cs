@@ -5,20 +5,62 @@ namespace SpellChecker
 {
     class Program
     {
-        static void Main(string[] args)
+        enum ExitCode
         {
-            string filePath = @"C:\Users\Jake\source\repos\SpellChecker\google-10000-english.txt";
-            //string filePath = @"C:\Users\Jake\source\repos\SpellChecker\short-list.txt";
+            NoError = 0,
+            NoCommandLineArg = 1
+        }
+
+        static int Main(string[] args)
+        {
+            string filePath;
+            string fileToCheck;
+            if (args.Length == 2) // validate command line arguments
+            {
+                filePath = args[0];
+                fileToCheck = args[1];
+            }
+            else
+            {
+                Console.WriteLine("Usage: dotnet run <path to dictionary file> <word to spell check>");
+                return (int)ExitCode.NoCommandLineArg;
+            }
             // the @ sign indicates a string literal, so the backslashes do not need to be escaped
             StreamReader file = OpenFile(filePath);
-            string line;
+            StreamReader checkFile = OpenFile(fileToCheck);
             LinkedList<string>[] values = new LinkedList<string>[50];
+            LoadHashTable(file, values);
+            int misspelledCount = 0;
+            // read file line by line, and seperate by word, seperately send each word to spellcheck, if true, incremenet a counter to return a count of misspelled words.
+            string[] words = checkFile.ReadToEnd().Split(' ');
+            foreach(string word in words)
+            {
+                if (SpellCheck(word, values, HashFunction(word)))
+                    Console.WriteLine(word);
+                    misspelledCount++;
+            }
+
+            Console.WriteLine("There were " + misspelledCount + " misspelled words");
+
+            file.Close();
+            checkFile.Close();
+            Console.ReadLine();
+            return (int)ExitCode.NoError;
+        }
+
+        static StreamReader OpenFile(string filePath)
+        {
+            return new StreamReader(filePath);;
+        }
+        static void LoadHashTable(StreamReader file, LinkedList<string>[] values)
+        {
+            string line;
             // values is an array of size 50 with LinkedLists as the datatype
             while ((line = file.ReadLine()) != null)
             {
                 LinkedListNode<string> newNode = new LinkedListNode<string>(line);
                 int hash = HashFunction(line);
-                if(values[hash] == null) // if bucket is not yet initialized
+                if (values[hash] == null) // if bucket is not yet initialized
                 {
                     values[hash] = new LinkedList<string>();
                     values[hash].AddLast(newNode);
@@ -28,31 +70,6 @@ namespace SpellChecker
                     values[hash].AddLast(newNode);
                 }
             }
-            // ==================== test for whether hashing operation was succesfful
-            //for (int i = 0; i < 50; i++)
-            //{
-            //    if (values[i] != null)
-            //    {
-            //        Console.WriteLine(values[i].Count);
-
-            //    }
-            //}
-
-            // ==================== spell check word
-  
-            if (SpellCheck("correct", values, HashFunction("correct")))
-                Console.WriteLine("Correct!");
-            else
-                Console.WriteLine("Incorrect");
-
-            file.Close();
-            Console.ReadLine();
-
-        }
-
-        static StreamReader OpenFile(string filePath)
-        {
-            return new StreamReader(filePath);;
         }
         static int HashFunction(string s)
         {
