@@ -15,6 +15,8 @@ namespace SpellChecker
         {
             string filePath;
             string fileToCheck;
+            string writeFilePath = @"C:\Users\Jake\source\repos\SpellChecker\out.txt";
+            File.WriteAllText(writeFilePath, String.Empty);
             if (args.Length == 2) // validate command line arguments
             {
                 filePath = args[0];
@@ -28,6 +30,7 @@ namespace SpellChecker
             // the @ sign indicates a string literal, so the backslashes do not need to be escaped
             StreamReader file = OpenFile(filePath);
             StreamReader checkFile = OpenFile(fileToCheck);
+            StreamWriter writeFile = new StreamWriter(writeFilePath);
             LinkedList<string>[] values = new LinkedList<string>[50];
             LoadHashTable(file, values);
             int misspelledCount = 0;
@@ -35,8 +38,7 @@ namespace SpellChecker
             string[] words = checkFile.ReadToEnd().Split(' ');
             foreach(string word in words)
             {
-                if (SpellCheck(word, values, HashFunction(word)))
-                    Console.WriteLine(word);
+                if (!SpellCheck(word.ToLower().Trim(), values, writeFile))
                     misspelledCount++;
             }
 
@@ -44,6 +46,7 @@ namespace SpellChecker
 
             file.Close();
             checkFile.Close();
+            writeFile.Close();
             Console.ReadLine();
             return (int)ExitCode.NoError;
         }
@@ -54,22 +57,26 @@ namespace SpellChecker
         }
         static void LoadHashTable(StreamReader file, LinkedList<string>[] values)
         {
+            int valuesLoaded = 0;
             string line;
             // values is an array of size 50 with LinkedLists as the datatype
             while ((line = file.ReadLine()) != null)
             {
-                LinkedListNode<string> newNode = new LinkedListNode<string>(line);
+                LinkedListNode<string> newNode = new LinkedListNode<string>(line.ToLower());
                 int hash = HashFunction(line);
                 if (values[hash] == null) // if bucket is not yet initialized
                 {
                     values[hash] = new LinkedList<string>();
                     values[hash].AddLast(newNode);
+                    valuesLoaded++;
                 }
                 else // if bucket has already been accessed
                 {
                     values[hash].AddLast(newNode);
+                    valuesLoaded++;
                 }
             }
+            Console.WriteLine(valuesLoaded);
         }
         static int HashFunction(string s)
         {
@@ -81,14 +88,45 @@ namespace SpellChecker
             }
             return sum % 50;
         }
-        static bool SpellCheck(string word, LinkedList<string>[] values, int hash)
+        static bool SpellCheck(string word, LinkedList<string>[] values, StreamWriter file)
         {
+            // returns true if word spelled correctly
             // arrays are passed by reference
-            if (values[hash] != null && values[hash].Contains(word))
+            if (word.EndsWith(",") || word.EndsWith(".") || word.EndsWith(";"))
             {
-                return true;
+                char[] chars = { ',', '.', ';' };
+                word = word.TrimEnd(chars);
+                int hash = HashFunction(word);
+                if (values[hash].Contains(word))
+                {
+                    return true;
+                }
+                else
+                {
+                    file.WriteLine(word);
+                    return false;
+                }
+
             }
-            return false;
+            else
+            {
+                int hash = HashFunction(word);
+                if (values[hash].Contains(word))
+                {
+                    return true;
+                }
+                else
+                {
+                    file.WriteLine(word);
+                    return false;
+                }
+            }
         }
     }
 }
+/*
+ * optimizations:
+ * 1. ignore blank lines
+ * 2. speed up testing for punctuation and invalid words and such
+ */
+

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SpellChecker": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Users\\Jake\\source\\repos\\Spellchecker\\google-10000-english.txt C:\\Users\\Jake\\source\\repos\\Spellchecker\\monroe-doctrine.txt"
+    }
+  }
+}

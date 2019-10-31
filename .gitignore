@@ -247,4 +247,5 @@ paket-files/
 google-10000-english.txt
 monroe-doctrine.txt
 text.txt
+*.txt
 
