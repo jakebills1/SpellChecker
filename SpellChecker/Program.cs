@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Collections.Generic;
+using System.Text.RegularExpressions;
 namespace SpellChecker
 {
   public class Trie
@@ -42,20 +42,22 @@ namespace SpellChecker
     }
     public static bool Search(String key)
     {
-      Console.WriteLine(key);
       TrieNode current = root;
 
       int index;
       for (int i = 0; i < key.Length; i++)
       {
         index = key[i] - 'a';
-        if (current.children[index] == null)
+        if (index >= 0 && index <= 25)
         {
-          return false;
-        }
-        else
-        {
-          current = current.children[index];
+          if (current.children[index] == null)
+          {
+            return false;
+          }
+          else
+          {
+            current = current.children[index];
+          }
         }
       }
       return true;
@@ -72,12 +74,12 @@ namespace SpellChecker
 
     static int Main(string[] args)
     {
-      string filePath;
+      string dictFilePath;
       string fileToCheck;
       string writeFilePath;
       if (args.Length == 3) // validate command line arguments
       {
-        filePath = args[0];
+        dictFilePath = args[0];
         fileToCheck = args[1];
         writeFilePath = args[2];
       }
@@ -89,29 +91,33 @@ namespace SpellChecker
       File.WriteAllText(writeFilePath, String.Empty);
       // ensures outfile is empty
       // the @ sign indicates a string literal, so the backslashes do not need to be escaped
-      StreamReader file = OpenFile(filePath);
+      StreamReader dictFile = OpenFile(dictFilePath);
       StreamReader checkFile = OpenFile(fileToCheck);
       StreamWriter writeFile = new StreamWriter(writeFilePath);
+      writeFile.WriteLine("Incorrectly spelled words:");
       string line;
-      while ((line = file.ReadLine()) != null)
+      while ((line = dictFile.ReadLine()) != null)
       {
         Trie.Insert(line.ToLower());
       }
+      int misspelledWordCount = 0;
       string[] words = checkFile.ReadToEnd().Split(' ');
+
       foreach (string word in words)
       {
-        if (!Trie.Search(word.Trim().ToLower()))
+        if (!Trie.Search(Normalize(word)))
         {
-          Console.WriteLine(word);
-        }
-        else
-        {
-          writeFile.WriteLine(word);
+          if (!CheckForControl(word))
+          {
+            misspelledWordCount++;
+            writeFile.WriteLine(Normalize(word));
+          }
         }
       }
-      file.Close();
+      dictFile.Close();
       checkFile.Close();
       writeFile.Close();
+      Console.WriteLine("Spellcheck completed. There were " + misspelledWordCount + " misspelled words. Press enter to exit");
       Console.ReadLine();
       return (int)ExitCode.NoError;
     }
@@ -120,11 +126,25 @@ namespace SpellChecker
     {
       return new StreamReader(filePath); ;
     }
+    static string Normalize(string word)
+    {
+      string normWord = Regex.Replace(word, @"[^\u0009\u000A\u000D\u0020-\u007E]", "*");
+      return normWord.ToLower();
+    }
+    static bool CheckForControl(string word)
+    {
+      for (int i = 0; i < word.Length; i++)
+      {
+        if (Char.IsControl(word[i]))
+          return false;
+      }
+      return true;
+    }
   }
 }
 /*
  * optimizations:
  * 1. parameters to Search must be valid words, no punctuation
- * 2. make work for words with apostrophes 
+ * 2. write function to validate words and return an array of words with no punctuation, blank space, etc 
  */
 
